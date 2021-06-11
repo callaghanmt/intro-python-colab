@@ -1,0 +1,214 @@
+
+# Author: Martin Callaghan
+# Date: 2021-05-10
+# Lesson link: https://arctraining.github.io/python-2021-04/05-merging-data/index.html
+
+# Connect my Google Drive to Google Colab
+from google.colab import drive
+drive.mount ('/content/gdrive')
+
+# Load the python packages we need
+import pandas as pd
+
+
+# Remember that we need to link back to the file and folder we permanently stored in our Google Drive
+# But having to include this long path every time is a pain so
+filepath = "/content/gdrive/MyDrive/Colab Notebooks/intro-python-2021-04/data/"
+surveys_df = pd.read_csv (filepath + 'surveys.csv')
+
+surveys_df = pd.read_csv (filepath + 'surveys.csv',
+                          keep_default_na = False, na_values =[""])
+
+species_df = pd.read_csv (filepath + 'species.csv',
+                          keep_default_na = False, na_values =[""])
+
+# We now have two dataframes
+surveys_df
+
+species_df
+
+# Get the first 10 lines of surveys
+surveys_sub = surveys_df.head(10)
+
+# Get the last 10 rows
+survey_sub_last10 = surveys_df.tail(10)
+
+
+surveys_sub
+
+survey_sub_last10
+
+
+# drop = True allows us to reset these index values
+survey_sub_last10 = survey_sub_last10.reset_index(drop=True)
+
+survey_sub_last10
+
+# We can now join the dataframes and to do so we specify the "axis"
+# We can stack them, join vertically
+# axis = 0
+vertical_stack = pd.concat ([surveys_sub, survey_sub_last10], axis = 0)
+
+vertical_stack
+
+# Concatenate the dataframes side-by-side
+# Horizontally axis = 1
+horizontal_stack = pd.concat ([surveys_sub, survey_sub_last10], axis = 1)
+
+horizontal_stack
+
+vertical_stack.iloc[[4]]
+
+vertical_stack.loc[[4]]
+
+# To avoid this potentially odd behaviour, when vertically stacking we can reset indexes
+vertical_stack.reset_index()
+
+vertical_stack
+
+vertical_stack = vertical_stack.reset_index()
+
+vertical_stack
+
+# Writing df to csv
+vertical_stack.to_csv (filepath + 'out.csv', index = False)
+
+# Load the python packages we need
+import pandas as pd
+
+# Connect my Google Drive to Google Colab
+from google.colab import drive
+drive.mount ('/content/gdrive')
+
+# Remember that we need to link back to the file and folder we permanently stored in our Google Drive
+# But having to include this long path every time is a pain so
+filepath = "/content/gdrive/MyDrive/Colab Notebooks/intro-python-2021-04/data/"
+surveys_df = pd.read_csv (filepath + 'surveys.csv')
+
+surveys2001 = pd.read_csv (filepath + 'surveys2001.csv')
+
+surveys2001.head()
+
+# What is 'Unnamed: 0'?
+# Drop it...
+surveys2001.drop('Unnamed: 0', axis = 1, inplace = True)
+
+surveys2001.head()
+
+surveys2002 = pd.read_csv (filepath + 'surveys2002.csv')
+
+surveys2002.head()
+
+surveys2002.drop('Unnamed: 0', axis = 1, inplace = True)
+
+surveys2002.head()
+
+# Now concatenate - stack vertically
+vertical_surveys = pd.concat([surveys2001, surveys2002], axis=0)
+
+vertical_surveys.head()
+
+# Create a plot of average plot weight (grouped) by year (and) grouped by sex
+# We could at this stage drop all the columns except: sex, weight, year
+
+weight_year = vertical_surveys.groupby(['year', 'sex']).mean()["weight"]
+
+# Homework: 
+# Plot the data
+# Save the data out to Google Drive
+# Google for "Pandas plotting"
+
+weight_year.plot(kind="bar");
+
+# which isn't quite what we want.
+# In this df, year and sex are 'combined', we need to pull them apart
+# We do this with the unstack method
+weight_year = vertical_surveys.groupby(['year', 'sex']).mean()["weight"].unstack()
+
+# so plot it again
+weight_year.plot(kind="bar");
+
+# save as csv
+weight_year.to_csv(filepath + 'weight_for_year.csv')
+
+# now read it back in
+pd.read_csv(filepath + "weight_for_year.csv", index_col=0)
+
+# Use the species dataset to 'lookup' values based on the species_id field
+
+surveys_sub = surveys_df.head(10)
+
+# Load in a special subset of the species data
+species_sub = pd.read_csv (filepath + 'speciesSubset.csv',
+                           keep_default_na=False, na_values=[""])
+
+# Identify the join or common columns
+species_sub.columns
+
+surveys_sub.columns
+
+# We assume here that 'species_id' is the common column
+
+merged_inner = pd.merge(left=surveys_sub, right=species_sub, 
+                        left_on='species_id', right_on='species_id')
+# In this case `species_id` is the only column name in  both dataframes, so if we 
+# skipped `left_on` and `right_on` arguments we would still get the same result
+
+# What's the size of the output data?
+merged_inner.shape
+
+merged_inner
+
+# It only contains rows that have two-letter species codes that are the same in both the 
+# survey_sub and species_sub DataFrames.
+
+# A left join is performed in pandas by calling the same merge function used for inner join, 
+# but using the how='left' argument
+merged_left = pd.merge(left=surveys_sub, right=species_sub, how='left', 
+                       left_on='species_id', right_on='species_id')
+
+
+merged_left
+
+# Create new dataframe
+merged_left = pd.merge(left=surveys_df,right=species_df, how='left', on="species_id")
+
+# Calculate and plot distribution of:
+# taxa per plot (number of species of each taxa per plot)
+merged_left.groupby(["plot_id"])["taxa"].nunique().plot(kind='bar');
+
+# Taxa by sex by plot
+# Change the NaN for sex to an indeterminate value
+merged_left.loc[merged_left["sex"].isnull(), "sex"] = 'M|F'
+
+# Number of taxa for each plot/sex combination:
+ntaxa_sex_site= merged_left.groupby(["plot_id", "sex"])["taxa"].nunique().reset_index(level=1)
+
+
+ntaxa_sex_site = ntaxa_sex_site.pivot_table (values="taxa", columns="sex", index=ntaxa_sex_site.index)
+
+import matplotlib.pyplot as plt
+ntaxa_sex_site.plot(kind="bar", legend=False)
+plt.legend(loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.08), fontsize='small', frameon=False);
+
+
+
+plot_info = pd.read_csv(filepath + "plots.csv")
+plot_info.groupby("plot_type").count()
+
+# Diversity index
+merged_site_type = pd.merge(merged_left, plot_info, on='plot_id')
+# For each plot, get the number of species for each plot
+nspecies_site = merged_site_type.groupby(["plot_id"])["species"].nunique().rename("nspecies")
+# For each plot, get the number of individuals
+nindividuals_site = merged_site_type.groupby(["plot_id"]).count()['record_id'].rename("nindiv")
+# combine the two series
+diversity_index = pd.concat([nspecies_site, nindividuals_site], axis=1)
+# calculate the diversity index
+diversity_index['diversity'] = diversity_index['nspecies']/diversity_index['nindiv']
+
+# Bar chart
+diversity_index['diversity'].plot(kind="barh");
+
+
+
